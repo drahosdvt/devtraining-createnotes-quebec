@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
+    <sp_widget action="INSERT_OR_UPDATE">
+        <category>custom</category>
+        <client_script><![CDATA[function($rootScope,$scope, spUtil) {
+	/* widget controller */
+	var c = this;
+	c.selectItem = function(idx) {
+		var id = c.data.notes[idx].sys_id;
+		console.log('Note ID: ' + id);
+		$rootScope.noteID = id;
+		$rootScope.$emit('selectNote', id);
+	}
+	
+	c.snNoteUpdate = function(name,sysID){
+
+		for (var i=0;i<c.data.notes.length;i++){
+			if(c.data.notes[i].sys_id == name.data.sys_id){
+				if(name.data.record.note){
+					c.data.notes[i].note = name.data.record.note.display_value;
+				}
+				if(name.data.record.title){
+					c.data.notes[i].title = name.data.record.title.display_value;
+				}
+				c.server.update();
+
+			}
+		}
+	}
+
+	// Record removed from data object on the server and passed back to client
+	c.snNoteDelete = function(sysID){
+
+		c.server.get({
+			action: 'snDeleteNote',
+			noteID: sysID
+
+		}).then(function(r){
+			c.data.notes = r.data.notes;
+		});
+
+	}
+	spUtil.recordWatch($scope, "x_58872_needit_createnotes_note", "1", function(name) {
+		console.log(name.data.operation); 
+		console.log(name); 
+		if(name.data.operation == "insert"){
+		c.server.refresh();
+		if(name.data.operation == "update"){
+		c.snNoteUpdate(name, name.data.sys_id);
+	}
+	if(name.data.operation == "delete"){
+		c.snNoteDelete(name.data.sys_id);
+		
+	}
+	}
+		
+	  });
+}
+]]></client_script>
+        <controller_as>c</controller_as>
+        <css/>
+        <data_table>sp_instance</data_table>
+        <demo_data/>
+        <description/>
+        <docs/>
+        <field_list/>
+        <has_preview>true</has_preview>
+        <id>notes_list_clone</id>
+        <internal>false</internal>
+        <link><![CDATA[function link(scope, element, attrs, controller) {
+  
+}]]></link>
+        <name>Notes list clone</name>
+        <option_schema>[{"hint":"Specify a title for the Notes List widget","name":"title","section":"other","default_value":"Notes","label":"Title","type":"string"},{"hint":"5","name":"maximum_records_to_display","section":"other","default_value":"5","label":"Maximum records to display","type":"choice","choices":[{"label":"2","value":"2"},{"label":"3","value":"3"},{"label":"5","value":"5"},{"label":"7","value":"7"},{"label":"11","value":"11"},{"label":"13","value":"13"},{"label":"17","value":"17"}]}]</option_schema>
+        <public>false</public>
+        <roles/>
+        <script><![CDATA[(function() {
+	
+	data.table_name
+	
+	
+//create an array to populate with notes
+data.notes = [];
+var noteGR = new GlideRecord('x_58872_needit_createnotes_note');
+noteGR.addQuery('user', gs.getUser().getID());
+noteGR.orderByDesc('sys_created_on');
+noteGR.setLimit(options.maximum_records_to_display);
+noteGR.query();
+while (noteGR.next()) {
+var noteObj = {};
+//use service portal helper method to get some display values
+$sp.getRecordDisplayValues(noteObj, noteGR, 'number,title,sys_id');
+	
+if (input.action == 'snDeleteNote') {
+			var delNote = new GlideRecord('x_snc_createnotes_note');
+			// The notes record should already be gone.  Just
+			// making sure it no longer exists.
+			if(delNote.get(input.noteID)){
+				delNote.deleteRecord();
+			}
+
+		}	
+//get the first 20 characters of the description
+noteObj.note = noteGR.getValue('note').slice(0,20);
+//push the populated obj into the array
+data.notes.push(noteObj);
+}
+})();]]></script>
+        <servicenow>false</servicenow>
+        <sys_class_name>sp_widget</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2021-07-07 11:34:10</sys_created_on>
+        <sys_id>e0e7bdcc079130104b51f7fc7c1ed01e</sys_id>
+        <sys_mod_count>14</sys_mod_count>
+        <sys_name>Notes list clone</sys_name>
+        <sys_package display_value="CreateNotes" source="x_snc_createnotes">df5fd9a5090232007f44e1046c8ff69f</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="CreateNotes">df5fd9a5090232007f44e1046c8ff69f</sys_scope>
+        <sys_update_name>sp_widget_e0e7bdcc079130104b51f7fc7c1ed01e</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2021-07-07 12:37:38</sys_updated_on>
+        <template><![CDATA[<a class="list-group-item" ng-click="c.selectItem($index)" ng-repeat="note in data.notes">
+<div class="panel panel-default">
+<div class="panel-heading clearfix">
+<h3 class="panel-title pull-left">
+{{::c.options.title}}
+</h3>
+</div>
+<div class="list-group">
+<a class="list-group-item" ng-repeat="note in data.notes">
+<h4 class="list-group-item-heading">
+{{note.title}}
+</h4>
+<p class="list-group-item-text">
+{{note.note}}
+</p>
+</a>
+</div>
+</div>]]></template>
+    </sp_widget>
+</record_update>
